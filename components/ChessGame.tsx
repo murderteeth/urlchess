@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Square, type Move } from "chess.js";
 import { encodePgn } from "@/lib/pgn";
@@ -22,20 +22,11 @@ export default function ChessGame({ initialPgn }: Props) {
     return g;
   });
 
-  const history = useMemo(
-    () => game.history({ verbose: true }),
-    [game]
-  );
-  const [viewIndex, setViewIndex] = useState<number>(history.length - 1);
+  const redoStack = useRef<Move[]>([]);
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [showCopied, setShowCopied] = useState(false);
   const [boardWidth, setBoardWidth] = useState(480);
-
-  // Keep viewIndex in sync when history length changes (new move made)
-  useEffect(() => {
-    setViewIndex(history.length - 1);
-  }, [history.length]);
 
   // Responsive board sizing
   useEffect(() => {
@@ -55,23 +46,14 @@ export default function ChessGame({ initialPgn }: Props) {
     window.history.replaceState(null, "", url);
   }, []);
 
-  const isAtLatest = viewIndex === history.length - 1;
+  const canUndo = game.history().length > 0;
+  const canRedo = redoStack.current.length > 0;
 
-  // The FEN to display: either the position after the viewed move, or the starting position
-  const displayFen = useMemo(() => {
-    if (viewIndex < 0) {
-      return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    }
-    return history[viewIndex]!.after;
-  }, [history, viewIndex]);
-
-  // Legal moves from the current position (only if viewing latest)
+  // Legal moves
   const legalMoves = useMemo(() => {
-    if (!isAtLatest) return [];
     return game.moves({ verbose: true });
-  }, [game, isAtLatest]);
+  }, [game]);
 
-  // Get legal moves for a specific square
   const movesForSquare = useCallback(
     (square: Square): Move[] => {
       return legalMoves.filter((m) => m.from === square);
@@ -79,10 +61,9 @@ export default function ChessGame({ initialPgn }: Props) {
     [legalMoves]
   );
 
-  // Make a move
+  // Make a move (clears redo stack)
   const makeMove = useCallback(
     (from: Square, to: Square): boolean => {
-      if (!isAtLatest) return false;
       const newGame = new Chess();
       newGame.loadPgn(game.pgn());
       try {
@@ -90,31 +71,28 @@ export default function ChessGame({ initialPgn }: Props) {
       } catch {
         return false;
       }
+      redoStack.current = [];
       setGame(newGame);
       setSelectedSquare(null);
       syncUrl(newGame);
       return true;
     },
-    [game, isAtLatest, syncUrl]
+    [game, syncUrl]
   );
 
   // Click-to-move handler
   const onSquareClick = useCallback(
     ({ square }: { piece: unknown; square: string }) => {
-      if (!isAtLatest) return;
       const sq = square as Square;
 
       if (selectedSquare) {
-        // Try to move from selected to clicked square
         if (makeMove(selectedSquare, sq)) return;
-        // If clicking the same square, deselect
         if (selectedSquare === sq) {
           setSelectedSquare(null);
           return;
         }
       }
 
-      // Select this square if it has legal moves
       const moves = movesForSquare(sq);
       if (moves.length > 0) {
         setSelectedSquare(sq);
@@ -122,7 +100,7 @@ export default function ChessGame({ initialPgn }: Props) {
         setSelectedSquare(null);
       }
     },
-    [selectedSquare, isAtLatest, makeMove, movesForSquare]
+    [selectedSquare, makeMove, movesForSquare]
   );
 
   // Drag-and-drop handler
@@ -148,11 +126,65 @@ export default function ChessGame({ initialPgn }: Props) {
     return styles;
   }, [selectedSquare, movesForSquare]);
 
-  // Navigation
-  const goToStart = () => { setViewIndex(-1); setSelectedSquare(null); };
-  const goBack = () => { setViewIndex((i) => Math.max(-1, i - 1)); setSelectedSquare(null); };
-  const goForward = () => { setViewIndex((i) => Math.min(history.length - 1, i + 1)); setSelectedSquare(null); };
-  const goToEnd = () => { setViewIndex(history.length - 1); setSelectedSquare(null); };
+  // Undo: pop last move, push to redo stack
+  const undo = useCallback(() => {
+    const newGame = new Chess();
+    newGame.loadPgn(game.pgn());
+    const undone = newGame.undo();
+    if (!undone) return;
+    redoStack.current = [...redoStack.current, undone];
+    setGame(newGame);
+    setSelectedSquare(null);
+    syncUrl(newGame);
+  }, [game, syncUrl]);
+
+  // Redo: pop from redo stack, apply to game
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    const newGame = new Chess();
+    newGame.loadPgn(game.pgn());
+    const move = redoStack.current[redoStack.current.length - 1]!;
+    try {
+      newGame.move({ from: move.from, to: move.to, promotion: move.promotion });
+    } catch {
+      redoStack.current = [];
+      return;
+    }
+    redoStack.current = redoStack.current.slice(0, -1);
+    setGame(newGame);
+    setSelectedSquare(null);
+    syncUrl(newGame);
+  }, [game, syncUrl]);
+
+  // Undo all: reset to starting position, push all moves to redo
+  const undoAll = useCallback(() => {
+    const moves = game.history({ verbose: true });
+    if (moves.length === 0) return;
+    redoStack.current = [...redoStack.current, ...moves.reverse()];
+    const newGame = new Chess();
+    setGame(newGame);
+    setSelectedSquare(null);
+    syncUrl(newGame);
+  }, [game, syncUrl]);
+
+  // Redo all: replay all redo moves
+  const redoAll = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    const newGame = new Chess();
+    newGame.loadPgn(game.pgn());
+    const stack = [...redoStack.current].reverse();
+    for (const move of stack) {
+      try {
+        newGame.move({ from: move.from, to: move.to, promotion: move.promotion });
+      } catch {
+        break;
+      }
+    }
+    redoStack.current = [];
+    setGame(newGame);
+    setSelectedSquare(null);
+    syncUrl(newGame);
+  }, [game, syncUrl]);
 
   // Copy URL
   const copyUrl = useCallback(async () => {
@@ -175,6 +207,7 @@ export default function ChessGame({ initialPgn }: Props) {
   // New game
   const newGame = useCallback(() => {
     const g = new Chess();
+    redoStack.current = [];
     setGame(g);
     setSelectedSquare(null);
     syncUrl(g);
@@ -182,10 +215,6 @@ export default function ChessGame({ initialPgn }: Props) {
 
   // Status text
   const statusText = useMemo(() => {
-    if (!isAtLatest) {
-      const moveNum = viewIndex + 1;
-      return `Viewing move ${moveNum} of ${history.length}`;
-    }
     if (game.isCheckmate()) {
       return game.turn() === "w" ? "Black wins by checkmate!" : "White wins by checkmate!";
     }
@@ -199,7 +228,7 @@ export default function ChessGame({ initialPgn }: Props) {
       return `${game.turn() === "w" ? "White" : "Black"} is in check`;
     }
     return `${game.turn() === "w" ? "White" : "Black"} to move`;
-  }, [game, isAtLatest, viewIndex, history.length]);
+  }, [game]);
 
   return (
     <div className="game-container">
@@ -208,11 +237,10 @@ export default function ChessGame({ initialPgn }: Props) {
       <div className="board-wrapper" style={{ width: boardWidth, height: boardWidth }}>
         <Chessboard
           options={{
-            position: displayFen,
+            position: game.fen(),
             onSquareClick,
             onPieceDrop,
             boardOrientation,
-            allowDragging: isAtLatest,
             squareStyles,
             darkSquareStyle: { backgroundColor: "#779952" },
             lightSquareStyle: { backgroundColor: "#edeed1" },
@@ -221,16 +249,16 @@ export default function ChessGame({ initialPgn }: Props) {
       </div>
 
       <div className="controls">
-        <button onClick={goToStart} disabled={viewIndex < 0} title="Go to start">
+        <button onClick={undoAll} disabled={!canUndo} title="Undo all">
           &#x23EE;
         </button>
-        <button onClick={goBack} disabled={viewIndex < 0} title="Previous move">
+        <button onClick={undo} disabled={!canUndo} title="Undo">
           &#x23F4;
         </button>
-        <button onClick={goForward} disabled={isAtLatest} title="Next move">
+        <button onClick={redo} disabled={!canRedo} title="Redo">
           &#x23F5;
         </button>
-        <button onClick={goToEnd} disabled={isAtLatest} title="Go to end">
+        <button onClick={redoAll} disabled={!canRedo} title="Redo all">
           &#x23ED;
         </button>
         <button onClick={() => setBoardOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board">
