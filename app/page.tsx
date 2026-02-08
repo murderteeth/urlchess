@@ -9,7 +9,8 @@ type Props = {
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
   const pgn = params.pgn ? decodePgn(params.pgn) : "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   const ogPgn = pgn ? `?pgn=${encodePgn(pgn)}` : "";
 
   return {
