@@ -34,7 +34,7 @@ export async function GET(request: Request) {
           justifyContent: "center",
           width: "1200px",
           height: "630px",
-          backgroundColor: "transparent",
+          backgroundColor: "#000",
         }}
       >
         <div
