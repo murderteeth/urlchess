@@ -132,7 +132,10 @@ body {
   border-radius: 6px;
   padding: 12px 0;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   touch-action: manipulation;

@@ -5,6 +5,17 @@ import { Chessboard, defaultPieces } from "react-chessboard";
 import { Chess, type Square, type Move } from "chess.js";
 import { encodeMoves } from "@/lib/moves";
 import { parseInput } from "@/lib/parse";
+import {
+  PiArrowCounterClockwiseFill,
+  PiSkipBackFill,
+  PiCaretLeftFill,
+  PiCaretRightFill,
+  PiSkipForwardFill,
+  PiArrowsDownUpFill,
+  PiLinkBold,
+  PiCopyFill,
+  PiCheckBold,
+} from "react-icons/pi";
 
 interface Props {
   initialPgn?: string;
@@ -347,25 +358,25 @@ export default function ChessGame({ initialPgn }: Props) {
       <div className="controls">
         <div className="controls-row">
           <button onClick={newGame} title="New game">
-            New
+            <PiArrowCounterClockwiseFill />
           </button>
           <button onClick={undoAll} disabled={!canUndo} title="Undo all">
-            &#x23EE;
+            <PiSkipBackFill />
           </button>
           <button onClick={undo} disabled={!canUndo} title="Undo">
-            &#x23F4;
+            <PiCaretLeftFill />
           </button>
           <button onClick={redo} disabled={!canRedo} title="Redo">
-            &#x23F5;
+            <PiCaretRightFill />
           </button>
           <button onClick={redoAll} disabled={!canRedo} title="Redo all">
-            &#x23ED;
+            <PiSkipForwardFill />
           </button>
           <button onClick={() => setBoardOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board">
-            &#x21C5;
+            <PiArrowsDownUpFill />
           </button>
           <button className="btn-share" onClick={copyUrl} title="Copy URL">
-            {showCopied ? "Copied!" : "Share"}
+            {showCopied ? <PiCheckBold /> : <PiLinkBold />}
           </button>
         </div>
       </div>
@@ -411,7 +422,7 @@ export default function ChessGame({ initialPgn }: Props) {
           }}
           title="Copy PGN"
         >
-          {showPgnCopied ? "Copied!" : "Copy"}
+          {showPgnCopied ? <PiCheckBold /> : <PiCopyFill />}
         </button>
       </div>
 
@@ -424,7 +435,7 @@ export default function ChessGame({ initialPgn }: Props) {
           onClick={copyFen}
           title="Copy FEN"
         >
-          {showFenCopied ? "Copied!" : "Copy"}
+          {showFenCopied ? <PiCheckBold /> : <PiCopyFill />}
         </button>
       </div>
 
