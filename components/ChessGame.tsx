@@ -408,7 +408,6 @@ export default function ChessGame({ initialPgn }: Props) {
           value={pgnText}
           onChange={handlePgnChange}
           placeholder="Paste moves here (PGN, UCI, LAN, ICCF)..."
-          rows={10}
           spellCheck={false}
         />
         <button
