@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+  ),
   title: "URL Chess",
   description: "Correspondence chess in a URL. Make a move, share the link.",
+  openGraph: {
+    siteName: "URL Chess",
+  },
 };
 
 export default function RootLayout({
