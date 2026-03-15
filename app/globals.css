@@ -70,6 +70,8 @@ body {
 
 .board-wrapper {
   position: relative;
+  width: min(calc(100vw - 32px), 560px);
+  aspect-ratio: 1;
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);

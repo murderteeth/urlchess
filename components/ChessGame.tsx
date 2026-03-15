@@ -39,22 +39,11 @@ export default function ChessGame({ initialPgn }: Props) {
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [showCopied, setShowCopied] = useState(false);
-  const [boardWidth, setBoardWidth] = useState(480);
   const [showFenCopied, setShowFenCopied] = useState(false);
   const [showPgnCopied, setShowPgnCopied] = useState(false);
   const [pgnText, setPgnText] = useState("");
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
 
-  // Responsive board sizing
-  useEffect(() => {
-    function updateWidth() {
-      const w = Math.min(window.innerWidth - 32, 560);
-      setBoardWidth(Math.max(280, w));
-    }
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, []);
 
   // Sync URL with current game PGN
   const syncUrl = useCallback((g: Chess) => {
@@ -323,7 +312,7 @@ export default function ChessGame({ initialPgn }: Props) {
         </div>
       </header>
 
-      <div className="board-wrapper" style={{ width: boardWidth, height: boardWidth }}>
+      <div className="board-wrapper">
         <Chessboard
           options={{
             position: game.fen(),
