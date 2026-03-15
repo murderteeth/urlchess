@@ -17,7 +17,20 @@ function buildTitle(pgn: string): string {
   const lastMove = history[history.length - 1];
   const moveNum = Math.ceil(history.length / 2);
   const dot = history.length % 2 === 1 ? `${moveNum}.` : `${moveNum}...`;
-  return `${dot} ${lastMove} - ${turn} to move`;
+
+  let status: string;
+  if (game.isCheckmate()) {
+    status = `${turn === "White" ? "Black" : "White"} wins by checkmate!`;
+  } else if (game.isDraw()) {
+    if (game.isStalemate()) status = "Draw by stalemate";
+    else if (game.isThreefoldRepetition()) status = "Draw by repetition";
+    else if (game.isInsufficientMaterial()) status = "Draw by insufficient material";
+    else status = "Draw by fifty-move rule";
+  } else {
+    status = `${turn} to move`;
+  }
+
+  return `${dot} ${lastMove} - ${status}`;
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -29,7 +42,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
   return {
     title: buildTitle(pgn),
-    description: "Correspondence chess in a URL. Make your move, share the link.",
+    description: "Make your move, share the link.",
     openGraph: {
       title: buildTitle(pgn),
       images: [
