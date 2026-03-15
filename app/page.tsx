@@ -1,10 +1,24 @@
 import type { Metadata } from "next";
+import { Chess } from "chess.js";
 import { encodeMoves, decodeMoves } from "@/lib/moves";
 import ChessGame from "@/components/ChessGame";
 
 type Props = {
   searchParams: Promise<{ m?: string }>;
 };
+
+function buildTitle(pgn: string): string {
+  if (!pgn) return "White to move";
+  const game = new Chess();
+  try { game.loadPgn(pgn); } catch { return "White to move"; }
+  const history = game.history();
+  const turn = game.turn() === "w" ? "White" : "Black";
+  if (history.length === 0) return "White to move";
+  const lastMove = history[history.length - 1];
+  const moveNum = Math.ceil(history.length / 2);
+  const dot = history.length % 2 === 1 ? `${moveNum}.` : `${moveNum}...`;
+  return `${dot} ${lastMove} - ${turn} to move`;
+}
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
@@ -14,7 +28,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const ogParam = pgn ? `?m=${encodeMoves(pgn)}` : "";
 
   return {
-    title: pgn ? `OG Chess - ${pgn.slice(0, 60)}` : "OG Chess",
+    title: buildTitle(pgn),
     description: "Correspondence chess in a URL. Make your move, share the link.",
     openGraph: {
       title: "OG Chess",
