@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { Chessboard } from "react-chessboard";
+import { Chessboard, defaultPieces } from "react-chessboard";
 import { Chess, type Square, type Move } from "chess.js";
 import { encodeMoves } from "@/lib/moves";
 import { parseInput } from "@/lib/parse";
@@ -31,6 +31,7 @@ export default function ChessGame({ initialPgn }: Props) {
   const [showFenCopied, setShowFenCopied] = useState(false);
   const [showPgnCopied, setShowPgnCopied] = useState(false);
   const [pgnText, setPgnText] = useState("");
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
 
   // Responsive board sizing
   useEffect(() => {
@@ -65,23 +66,47 @@ export default function ChessGame({ initialPgn }: Props) {
     [legalMoves]
   );
 
-  // Make a move (clears redo stack)
-  const makeMove = useCallback(
+  // Check if a move is a promotion
+  const isPromotion = useCallback(
     (from: Square, to: Square): boolean => {
+      return legalMoves.some((m) => m.from === from && m.to === to && m.promotion);
+    },
+    [legalMoves]
+  );
+
+  // Execute a move with a specific promotion piece (or undefined)
+  const executeMove = useCallback(
+    (from: Square, to: Square, promotion?: "q" | "r" | "b" | "n"): boolean => {
       const newGame = new Chess();
       newGame.loadPgn(game.pgn());
       try {
-        newGame.move({ from, to, promotion: "q" });
+        newGame.move({ from, to, promotion });
       } catch {
         return false;
       }
       redoStack.current = [];
       setGame(newGame);
       setSelectedSquare(null);
+      setPendingPromotion(null);
       syncUrl(newGame);
       return true;
     },
     [game, syncUrl]
+  );
+
+  // Make a move — if promotion, show picker instead
+  const makeMove = useCallback(
+    (from: Square, to: Square): boolean => {
+      // Verify it's a legal move at all
+      if (!legalMoves.some((m) => m.from === from && m.to === to)) return false;
+      if (isPromotion(from, to)) {
+        setPendingPromotion({ from, to });
+        setSelectedSquare(null);
+        return true;
+      }
+      return executeMove(from, to);
+    },
+    [legalMoves, isPromotion, executeMove]
   );
 
   // Click-to-move handler
@@ -298,6 +323,25 @@ export default function ChessGame({ initialPgn }: Props) {
             lightSquareStyle: { backgroundColor: "#edeed1" },
           }}
         />
+        {pendingPromotion && (
+          <div className="promo-overlay" onClick={() => setPendingPromotion(null)}>
+            <div className="promo-picker" onClick={(e) => e.stopPropagation()}>
+              {(["q", "r", "b", "n"] as const).map((p) => {
+                const key = `${game.turn() === "w" ? "w" : "b"}${p.toUpperCase()}`;
+                const PieceSvg = defaultPieces[key];
+                return (
+                  <button
+                    key={p}
+                    className="promo-piece"
+                    onClick={() => executeMove(pendingPromotion.from, pendingPromotion.to, p)}
+                  >
+                    {PieceSvg && <PieceSvg />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="controls">
