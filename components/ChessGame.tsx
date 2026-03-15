@@ -47,9 +47,13 @@ export default function ChessGame({ initialPgn }: Props) {
 
   // Sync URL with current game PGN
   const syncUrl = useCallback((g: Chess) => {
-    const pgn = g.pgn();
-    const url = pgn ? `?m=${encodeMoves(pgn)}` : window.location.pathname;
-    window.history.replaceState(null, "", url);
+    try {
+      const pgn = g.pgn();
+      const url = pgn ? `?m=${encodeMoves(pgn)}` : window.location.pathname;
+      window.history.replaceState(null, "", url);
+    } catch (e) {
+      console.error("Failed to sync URL:", e);
+    }
   }, []);
 
   const canUndo = game.history().length > 0;
@@ -243,13 +247,14 @@ export default function ChessGame({ initialPgn }: Props) {
     syncUrl(g);
   }, [syncUrl]);
 
-  // Move history — also sync textarea
-  const history = useMemo(() => {
-    const h = game.history();
+  // Move history
+  const history = useMemo(() => game.history(), [game]);
+
+  // Sync PGN textarea with game state
+  useEffect(() => {
     const stripped = game.pgn().replace(/\[.*?\]\s*/g, "").trim();
-    setPgnText(h.length > 0 ? stripped : "");
-    return h;
-  }, [game]);
+    setPgnText(history.length > 0 ? stripped : "");
+  }, [game, history]);
 
   const moveRows = useMemo(() => {
     const rows: [number, string, string | undefined][] = [];
