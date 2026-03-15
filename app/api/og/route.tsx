@@ -2,14 +2,13 @@ import { ImageResponse } from "next/og";
 import { Chess } from "chess.js";
 import { fenToGrid } from "@/lib/board-renderer";
 import { renderPiece } from "@/lib/piece-svgs";
-import { decodePgn } from "@/lib/pgn";
+import { decodeMoves } from "@/lib/moves";
 
 export const runtime = "edge";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const rawPgn = searchParams.get("pgn") || "";
-  const pgn = rawPgn ? decodePgn(rawPgn) : "";
+  const pgn = searchParams.get("m") ? decodeMoves(searchParams.get("m")!) : "";
 
   const chess = new Chess();
   if (pgn) {

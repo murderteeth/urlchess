@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { decodePgn, encodePgn } from "@/lib/pgn";
+import { encodeMoves, decodeMoves } from "@/lib/moves";
 import ChessGame from "@/components/ChessGame";
 
 type Props = {
-  searchParams: Promise<{ pgn?: string }>;
+  searchParams: Promise<{ m?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
-  const pgn = params.pgn ? decodePgn(params.pgn) : "";
+  const pgn = params.m ? decodeMoves(params.m) : "";
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  const ogPgn = pgn ? `?pgn=${encodePgn(pgn)}` : "";
+  const ogParam = pgn ? `?m=${encodeMoves(pgn)}` : "";
 
   return {
     title: pgn ? `OG Chess - ${pgn.slice(0, 60)}` : "OG Chess",
@@ -21,7 +21,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       description: pgn || "A new game of chess",
       images: [
         {
-          url: `${baseUrl}/api/og${ogPgn}`,
+          url: `${baseUrl}/api/og${ogParam}`,
           width: 1200,
           height: 630,
         },
@@ -35,7 +35,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function Home({ searchParams }: Props) {
   const params = await searchParams;
-  const pgn = params.pgn ? decodePgn(params.pgn) : "";
+  const pgn = params.m ? decodeMoves(params.m) : "";
 
   return (
     <main className="main">

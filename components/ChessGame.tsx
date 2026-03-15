@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Square, type Move } from "chess.js";
-import { encodePgn } from "@/lib/pgn";
+import { encodeMoves } from "@/lib/moves";
 
 interface Props {
   initialPgn?: string;
@@ -42,7 +42,7 @@ export default function ChessGame({ initialPgn }: Props) {
   // Sync URL with current game PGN
   const syncUrl = useCallback((g: Chess) => {
     const pgn = g.pgn();
-    const url = pgn ? `?pgn=${encodePgn(pgn)}` : window.location.pathname;
+    const url = pgn ? `?m=${encodeMoves(pgn)}` : window.location.pathname;
     window.history.replaceState(null, "", url);
   }, []);
 
