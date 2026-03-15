@@ -9,7 +9,7 @@
 body {
   background-color: #1a1a2e;
   color: #e0e0e0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "JetBrains Mono", monospace;
   min-height: 100vh;
 }
 
@@ -22,8 +22,9 @@ body {
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-family: "Great Vibes", cursive;
+  font-size: 3rem;
+  font-weight: 400;
   color: #fff;
   margin-bottom: 4px;
 }
@@ -71,6 +72,7 @@ body {
   border: 1px solid #3a3a4e;
   border-radius: 6px;
   padding: 12px 0;
+  font-family: inherit;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
