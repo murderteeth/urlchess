@@ -213,6 +213,34 @@ export default function ChessGame({ initialPgn }: Props) {
     syncUrl(g);
   }, [syncUrl]);
 
+  // Move history
+  const history = useMemo(() => game.history(), [game]);
+
+  const moveRows = useMemo(() => {
+    const rows: [number, string, string | undefined][] = [];
+    for (let i = 0; i < history.length; i += 2) {
+      rows.push([Math.floor(i / 2) + 1, history[i]!, history[i + 1]]);
+    }
+    return rows;
+  }, [history]);
+
+  // Handle PGN paste/edit
+  const handlePgnChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newGame = new Chess();
+      try {
+        newGame.loadPgn(e.target.value);
+      } catch {
+        return;
+      }
+      redoStack.current = [];
+      setGame(newGame);
+      setSelectedSquare(null);
+      syncUrl(newGame);
+    },
+    [syncUrl]
+  );
+
   // Status text
   const statusText = useMemo(() => {
     if (game.isCheckmate()) {
@@ -281,6 +309,36 @@ export default function ChessGame({ initialPgn }: Props) {
           </button>
         </div>
       </div>
+
+      <div className="move-table">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>White</th>
+                <th>Black</th>
+              </tr>
+            </thead>
+            <tbody>
+              {moveRows.map(([num, white, black]) => (
+                <tr key={num}>
+                  <td className="move-num">{num}.</td>
+                  <td>{white}</td>
+                  <td>{black || ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+      </div>
+
+      <textarea
+        className="pgn-input"
+        value={history.length > 0 ? game.pgn().replace(/\[.*?\]\s*/g, "").trim() : ""}
+        onChange={handlePgnChange}
+        placeholder="Paste PGN here..."
+        rows={10}
+        spellCheck={false}
+      />
 
       {showCopied && <div className="toast">URL copied to clipboard!</div>}
     </div>

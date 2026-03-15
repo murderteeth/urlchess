@@ -134,6 +134,70 @@ body {
   .controls-row button:nth-child(7) { order: 12; grid-column: span 4; }
 }
 
+.move-table {
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  border: 1px solid #3a3a4e;
+  border-radius: 6px;
+}
+
+.move-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: fixed;
+}
+
+.move-table th {
+  position: sticky;
+  top: 0;
+  background: #2a2a3e;
+  color: #808090;
+  font-weight: 500;
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid #3a3a4e;
+}
+
+.move-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.move-table th:first-child,
+.move-table td:first-child {
+  width: 3em;
+}
+
+.move-table .move-num {
+  color: #606070;
+}
+
+.pgn-input {
+  width: 100%;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #3a3a4e;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.pgn-input:focus {
+  border-color: #5a5a7e;
+}
+
+.pgn-input::placeholder {
+  color: #606070;
+}
+
 .toast {
   position: fixed;
   bottom: 24px;
