@@ -303,7 +303,7 @@ export default function ChessGame({ initialPgn }: Props) {
     <div className="game-container">
       <header className="header">
         <div className="header-left">
-          <h1 className="title">OG Chess</h1>
+          <h1 className="title">URL Chess</h1>
           <p className="subtitle">Make your move, share the link</p>
         </div>
         <div className="header-right">

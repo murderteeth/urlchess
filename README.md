@@ -1,8 +1,8 @@
-# OG Chess
+# URL Chess
 
 Make your move, share the link.
 
-OG Chess is correspondence chess in a URL. The entire game state lives in the link — no accounts, no servers, no databases. Open a link, make a move, send the new link back. That's it.
+URL Chess is correspondence chess in a URL. The entire game state lives in the link — no accounts, no servers, no databases. Open a link, make a move, send the new link back. That's it.
 
 ## How it works
 
