@@ -31,8 +31,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title: buildTitle(pgn),
     description: "Correspondence chess in a URL. Make your move, share the link.",
     openGraph: {
-      title: "OG Chess",
-      description: pgn || "A new game of chess",
+      title: buildTitle(pgn),
       images: [
         {
           url: `${baseUrl}/api/og${ogParam}`,
