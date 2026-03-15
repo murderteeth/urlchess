@@ -12,14 +12,12 @@ When a link is shared, the OG image shows the current board position so your opp
 
 ## Features
 
-- Drag-and-drop and click-to-move
-- Promotion piece picker
-- Undo/redo with full history
-- Move table and editable PGN textarea
+- Board preview images in shared links
 - Paste moves in PGN, UCI, LAN, or ICCF format
 - Copyable FEN for position sharing
-- OG image generation for link previews
-- Mobile-friendly layout
+- Move table and editable PGN textarea
+- Undo/redo with full history
+- Mobile
 
 ## Stack
 
