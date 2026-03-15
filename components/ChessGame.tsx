@@ -15,6 +15,7 @@ import {
   PiLinkBold,
   PiCopyFill,
   PiCheckBold,
+  PiGithubLogoFill,
 } from "react-icons/pi";
 
 interface Props {
@@ -439,6 +440,12 @@ export default function ChessGame({ initialPgn }: Props) {
       </div>
 
       {showCopied && <div className="toast">URL copied to clipboard!</div>}
+
+      <footer className="footer">
+        <a href="https://github.com/murderteeth/urlchess" target="_blank" rel="noopener noreferrer">
+          <PiGithubLogoFill /> GitHub
+        </a>
+      </footer>
     </div>
   );
 }
