@@ -232,7 +232,15 @@ export default function ChessGame({ initialPgn }: Props) {
 
   return (
     <div className="game-container">
-      <div className="status">{statusText}</div>
+      <header className="header">
+        <div className="header-left">
+          <h1 className="title">OG Chess</h1>
+          <p className="subtitle">Make a move, share the link</p>
+        </div>
+        <div className="header-right">
+          <span className="status">{statusText}</span>
+        </div>
+      </header>
 
       <div className="board-wrapper" style={{ width: boardWidth, height: boardWidth }}>
         <Chessboard

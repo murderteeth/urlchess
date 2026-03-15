@@ -39,8 +39,6 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <main className="main">
-      <h1 className="title">OG Chess</h1>
-      <p className="subtitle">Make a move, share the link</p>
       <ChessGame initialPgn={pgn} />
     </main>
   );
