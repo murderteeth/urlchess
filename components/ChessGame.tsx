@@ -249,27 +249,29 @@ export default function ChessGame({ initialPgn }: Props) {
       </div>
 
       <div className="controls">
-        <button onClick={undoAll} disabled={!canUndo} title="Undo all">
-          &#x23EE;
-        </button>
-        <button onClick={undo} disabled={!canUndo} title="Undo">
-          &#x23F4;
-        </button>
-        <button onClick={redo} disabled={!canRedo} title="Redo">
-          &#x23F5;
-        </button>
-        <button onClick={redoAll} disabled={!canRedo} title="Redo all">
-          &#x23ED;
-        </button>
-        <button onClick={() => setBoardOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board">
-          &#x21C5;
-        </button>
-        <button onClick={copyUrl} title="Copy URL">
-          {showCopied ? "Copied!" : "Share"}
-        </button>
-        <button onClick={newGame} title="New game">
-          New
-        </button>
+        <div className="controls-row">
+          <button onClick={newGame} title="New game">
+            New
+          </button>
+          <button onClick={undoAll} disabled={!canUndo} title="Undo all">
+            &#x23EE;
+          </button>
+          <button onClick={undo} disabled={!canUndo} title="Undo">
+            &#x23F4;
+          </button>
+          <button onClick={redo} disabled={!canRedo} title="Redo">
+            &#x23F5;
+          </button>
+          <button onClick={redoAll} disabled={!canRedo} title="Redo all">
+            &#x23ED;
+          </button>
+          <button onClick={() => setBoardOrientation((o) => (o === "white" ? "black" : "white"))} title="Flip board">
+            &#x21C5;
+          </button>
+          <button className="btn-share" onClick={copyUrl} title="Copy URL">
+            {showCopied ? "Copied!" : "Share"}
+          </button>
+        </div>
       </div>
 
       {showCopied && <div className="toast">URL copied to clipboard!</div>}

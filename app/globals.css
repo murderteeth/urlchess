@@ -51,13 +51,18 @@ body {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  touch-action: manipulation;
 }
 
 .controls {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  width: 100%;
+  max-width: 560px;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
 }
 
 .controls button {
@@ -65,10 +70,12 @@ body {
   color: #e0e0e0;
   border: 1px solid #3a3a4e;
   border-radius: 6px;
-  padding: 8px 14px;
+  padding: 12px 0;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .controls button:hover:not(:disabled) {
@@ -79,6 +86,33 @@ body {
 .controls button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.controls .btn-share {
+  background: #4a7c59;
+  border-color: #5a9c69;
+}
+
+.controls .btn-share:hover:not(:disabled) {
+  background: #5a9c69;
+  border-color: #6abc79;
+}
+
+@media (max-width: 480px) {
+  .controls-row {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  /* Row 1: ⏮ ⏴ ⏵ ⏭ — each span 3 of 12 */
+  .controls-row button:nth-child(2) { order: 1; grid-column: span 3; }
+  .controls-row button:nth-child(3) { order: 2; grid-column: span 3; }
+  .controls-row button:nth-child(4) { order: 3; grid-column: span 3; }
+  .controls-row button:nth-child(5) { order: 4; grid-column: span 3; }
+
+  /* Row 2: New Flip Share — each span 4 of 12 */
+  .controls-row button:nth-child(1) { order: 10; grid-column: span 4; }
+  .controls-row button:nth-child(6) { order: 11; grid-column: span 4; }
+  .controls-row button:nth-child(7) { order: 12; grid-column: span 4; }
 }
 
 .toast {
