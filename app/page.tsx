@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
   return {
     title: pgn ? `OG Chess - ${pgn.slice(0, 60)}` : "OG Chess",
-    description: "Correspondence chess in a URL. Make a move, share the link.",
+    description: "Correspondence chess in a URL. Make your move, share the link.",
     openGraph: {
       title: "OG Chess",
       description: pgn || "A new game of chess",

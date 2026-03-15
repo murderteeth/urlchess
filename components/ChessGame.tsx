@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Square, type Move } from "chess.js";
 import { encodeMoves } from "@/lib/moves";
+import { parseInput } from "@/lib/parse";
 
 interface Props {
   initialPgn?: string;
@@ -27,6 +28,9 @@ export default function ChessGame({ initialPgn }: Props) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [showCopied, setShowCopied] = useState(false);
   const [boardWidth, setBoardWidth] = useState(480);
+  const [showFenCopied, setShowFenCopied] = useState(false);
+  const [showPgnCopied, setShowPgnCopied] = useState(false);
+  const [pgnText, setPgnText] = useState("");
 
   // Responsive board sizing
   useEffect(() => {
@@ -213,8 +217,13 @@ export default function ChessGame({ initialPgn }: Props) {
     syncUrl(g);
   }, [syncUrl]);
 
-  // Move history
-  const history = useMemo(() => game.history(), [game]);
+  // Move history — also sync textarea
+  const history = useMemo(() => {
+    const h = game.history();
+    const stripped = game.pgn().replace(/\[.*?\]\s*/g, "").trim();
+    setPgnText(h.length > 0 ? stripped : "");
+    return h;
+  }, [game]);
 
   const moveRows = useMemo(() => {
     const rows: [number, string, string | undefined][] = [];
@@ -224,22 +233,29 @@ export default function ChessGame({ initialPgn }: Props) {
     return rows;
   }, [history]);
 
-  // Handle PGN paste/edit
+  // Handle paste/edit in any supported format
   const handlePgnChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newGame = new Chess();
-      try {
-        newGame.loadPgn(e.target.value);
-      } catch {
-        return;
-      }
+      const value = e.target.value;
+      setPgnText(value);
+      const parsed = parseInput(value);
+      if (!parsed) return;
       redoStack.current = [];
-      setGame(newGame);
+      setGame(parsed);
       setSelectedSquare(null);
-      syncUrl(newGame);
+      syncUrl(parsed);
     },
     [syncUrl]
   );
+
+  // Copy FEN to clipboard
+  const copyFen = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(game.fen());
+      setShowFenCopied(true);
+      setTimeout(() => setShowFenCopied(false), 2000);
+    } catch {}
+  }, [game]);
 
   // Status text
   const statusText = useMemo(() => {
@@ -263,7 +279,7 @@ export default function ChessGame({ initialPgn }: Props) {
       <header className="header">
         <div className="header-left">
           <h1 className="title">OG Chess</h1>
-          <p className="subtitle">Make a move, share the link</p>
+          <p className="subtitle">Make your move, share the link</p>
         </div>
         <div className="header-right">
           <span className="status">{statusText}</span>
@@ -331,14 +347,42 @@ export default function ChessGame({ initialPgn }: Props) {
           </table>
       </div>
 
-      <textarea
-        className="pgn-input"
-        value={history.length > 0 ? game.pgn().replace(/\[.*?\]\s*/g, "").trim() : ""}
-        onChange={handlePgnChange}
-        placeholder="Paste PGN here..."
-        rows={10}
-        spellCheck={false}
-      />
+      <div className="pgn-wrapper">
+        <textarea
+          className="pgn-input"
+          value={pgnText}
+          onChange={handlePgnChange}
+          placeholder="Paste moves here (PGN, UCI, LAN, ICCF)..."
+          rows={10}
+          spellCheck={false}
+        />
+        <button
+          className="pgn-copy"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(pgnText);
+              setShowPgnCopied(true);
+              setTimeout(() => setShowPgnCopied(false), 2000);
+            } catch {}
+          }}
+          title="Copy PGN"
+        >
+          {showPgnCopied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+
+      <div className="fen-row">
+        <div className="fen-label">
+          <span className="fen-prefix">FEN</span> {game.fen()}
+        </div>
+        <button
+          className="fen-copy"
+          onClick={copyFen}
+          title="Copy FEN"
+        >
+          {showFenCopied ? "Copied!" : "Copy"}
+        </button>
+      </div>
 
       {showCopied && <div className="toast">URL copied to clipboard!</div>}
     </div>
