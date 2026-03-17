@@ -190,6 +190,17 @@ export default function ChessGame({ initialPgn }: Props) {
     syncUrl(newGame);
   }, [game, syncUrl]);
 
+  // Arrow key navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === "TEXTAREA") return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); undo(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
   // Undo all: reset to starting position, push all moves to redo
   const undoAll = useCallback(() => {
     const moves = game.history({ verbose: true });
