@@ -40,7 +40,7 @@ export function decodeMoves(encoded: string): string {
   return game.pgn();
 }
 
-function uint8ToBase64url(bytes: Uint8Array): string {
+export function uint8ToBase64url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
