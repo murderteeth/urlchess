@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Chessboard, defaultPieces } from "react-chessboard";
-import { Chess, type Square, type Move } from "chess.js";
-import { encodeMoves } from "@/lib/moves";
+import { type Square, type Move } from "chess.js";
+import { GameSession } from "@/lib/game-session";
 import { parseInput } from "@/lib/parse";
 import {
   PiArrowCounterClockwiseFill,
@@ -23,46 +23,33 @@ interface Props {
 }
 
 export default function ChessGame({ initialPgn }: Props) {
-  const [game, setGame] = useState<Chess>(() => {
-    const g = new Chess();
-    if (initialPgn) {
-      try {
-        g.loadPgn(initialPgn);
-      } catch {
-        // invalid PGN, start fresh
-      }
-    }
-    return g;
-  });
-
-  const redoStack = useRef<Move[]>([]);
+  const [session] = useState(() => new GameSession(initialPgn));
+  const [position, setPosition] = useState(() => session.snapshot());
+  const { fen, history, legalMoves, statusText, canUndo, canRedo } = position;
   const [boardOrientation, setBoardOrientation] = useState<"white" | "black">("white");
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [showCopied, setShowCopied] = useState(false);
   const [showFenCopied, setShowFenCopied] = useState(false);
   const [showPgnCopied, setShowPgnCopied] = useState(false);
-  const [pgnText, setPgnText] = useState("");
+  const [pgnText, setPgnText] = useState(position.pgn);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
 
-
-  // Sync URL with current game PGN
-  const syncUrl = useCallback((g: Chess) => {
+  // Publish an immutable snapshot only after the engine changes. Selection,
+  // copying, and board flips never replay the game or regenerate legal moves.
+  const refresh = useCallback(() => {
+    const next = session.snapshot();
+    setPosition(next);
+    setPgnText(next.pgn);
+    setSelectedSquare(null);
+    setPendingPromotion(null);
     try {
-      const pgn = g.pgn();
-      const url = pgn ? `?m=${encodeMoves(pgn)}` : window.location.pathname;
+      if (next.encoded === null) return;
+      const url = next.encoded ? `?m=${next.encoded}` : window.location.pathname;
       window.history.replaceState(null, "", url);
     } catch (e) {
       console.error("Failed to sync URL:", e);
     }
-  }, []);
-
-  const canUndo = game.history().length > 0;
-  const canRedo = redoStack.current.length > 0;
-
-  // Legal moves
-  const legalMoves = useMemo(() => {
-    return game.moves({ verbose: true });
-  }, [game]);
+  }, [session]);
 
   const movesForSquare = useCallback(
     (square: Square): Move[] => {
@@ -82,21 +69,11 @@ export default function ChessGame({ initialPgn }: Props) {
   // Execute a move with a specific promotion piece (or undefined)
   const executeMove = useCallback(
     (from: Square, to: Square, promotion?: "q" | "r" | "b" | "n"): boolean => {
-      const newGame = new Chess();
-      newGame.loadPgn(game.pgn());
-      try {
-        newGame.move({ from, to, promotion });
-      } catch {
-        return false;
-      }
-      redoStack.current = [];
-      setGame(newGame);
-      setSelectedSquare(null);
-      setPendingPromotion(null);
-      syncUrl(newGame);
+      if (!session.move(from, to, promotion)) return false;
+      refresh();
       return true;
     },
-    [game, syncUrl]
+    [session, refresh]
   );
 
   // Make a move — if promotion, show picker instead
@@ -160,35 +137,13 @@ export default function ChessGame({ initialPgn }: Props) {
     return styles;
   }, [selectedSquare, movesForSquare]);
 
-  // Undo: pop last move, push to redo stack
   const undo = useCallback(() => {
-    const newGame = new Chess();
-    newGame.loadPgn(game.pgn());
-    const undone = newGame.undo();
-    if (!undone) return;
-    redoStack.current = [...redoStack.current, undone];
-    setGame(newGame);
-    setSelectedSquare(null);
-    syncUrl(newGame);
-  }, [game, syncUrl]);
+    if (session.undo()) refresh();
+  }, [session, refresh]);
 
-  // Redo: pop from redo stack, apply to game
   const redo = useCallback(() => {
-    if (redoStack.current.length === 0) return;
-    const newGame = new Chess();
-    newGame.loadPgn(game.pgn());
-    const move = redoStack.current[redoStack.current.length - 1]!;
-    try {
-      newGame.move({ from: move.from, to: move.to, promotion: move.promotion });
-    } catch {
-      redoStack.current = [];
-      return;
-    }
-    redoStack.current = redoStack.current.slice(0, -1);
-    setGame(newGame);
-    setSelectedSquare(null);
-    syncUrl(newGame);
-  }, [game, syncUrl]);
+    if (session.redo()) refresh();
+  }, [session, refresh]);
 
   // Arrow key navigation
   useEffect(() => {
@@ -201,35 +156,15 @@ export default function ChessGame({ initialPgn }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
-  // Undo all: reset to starting position, push all moves to redo
   const undoAll = useCallback(() => {
-    const moves = game.history({ verbose: true });
-    if (moves.length === 0) return;
-    redoStack.current = [...redoStack.current, ...moves.reverse()];
-    const newGame = new Chess();
-    setGame(newGame);
-    setSelectedSquare(null);
-    syncUrl(newGame);
-  }, [game, syncUrl]);
+    session.undoAll();
+    refresh();
+  }, [session, refresh]);
 
-  // Redo all: replay all redo moves
   const redoAll = useCallback(() => {
-    if (redoStack.current.length === 0) return;
-    const newGame = new Chess();
-    newGame.loadPgn(game.pgn());
-    const stack = [...redoStack.current].reverse();
-    for (const move of stack) {
-      try {
-        newGame.move({ from: move.from, to: move.to, promotion: move.promotion });
-      } catch {
-        break;
-      }
-    }
-    redoStack.current = [];
-    setGame(newGame);
-    setSelectedSquare(null);
-    syncUrl(newGame);
-  }, [game, syncUrl]);
+    session.redoAll();
+    refresh();
+  }, [session, refresh]);
 
   // Copy URL
   const copyUrl = useCallback(async () => {
@@ -249,23 +184,10 @@ export default function ChessGame({ initialPgn }: Props) {
     }
   }, []);
 
-  // New game
   const newGame = useCallback(() => {
-    const g = new Chess();
-    redoStack.current = [];
-    setGame(g);
-    setSelectedSquare(null);
-    syncUrl(g);
-  }, [syncUrl]);
-
-  // Move history
-  const history = useMemo(() => game.history(), [game]);
-
-  // Sync PGN textarea with game state
-  useEffect(() => {
-    const stripped = game.pgn().replace(/\[.*?\]\s*/g, "").trim();
-    setPgnText(history.length > 0 ? stripped : "");
-  }, [game, history]);
+    session.reset();
+    refresh();
+  }, [session, refresh]);
 
   const moveRows = useMemo(() => {
     const rows: [number, string, string | undefined][] = [];
@@ -282,39 +204,20 @@ export default function ChessGame({ initialPgn }: Props) {
       setPgnText(value);
       const parsed = parseInput(value);
       if (!parsed) return;
-      redoStack.current = [];
-      setGame(parsed);
-      setSelectedSquare(null);
-      syncUrl(parsed);
+      session.load(parsed);
+      refresh();
     },
-    [syncUrl]
+    [session, refresh]
   );
 
   // Copy FEN to clipboard
   const copyFen = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(game.fen());
+      await navigator.clipboard.writeText(fen);
       setShowFenCopied(true);
       setTimeout(() => setShowFenCopied(false), 2000);
     } catch {}
-  }, [game]);
-
-  // Status text
-  const statusText = useMemo(() => {
-    if (game.isCheckmate()) {
-      return game.turn() === "w" ? "Black wins by checkmate!" : "White wins by checkmate!";
-    }
-    if (game.isDraw()) {
-      if (game.isStalemate()) return "Draw by stalemate";
-      if (game.isThreefoldRepetition()) return "Draw by repetition";
-      if (game.isInsufficientMaterial()) return "Draw by insufficient material";
-      return "Draw by fifty-move rule";
-    }
-    if (game.isCheck()) {
-      return `${game.turn() === "w" ? "White" : "Black"} is in check`;
-    }
-    return `${game.turn() === "w" ? "White" : "Black"} to move`;
-  }, [game]);
+  }, [fen]);
 
   return (
     <div className="game-container">
@@ -331,7 +234,7 @@ export default function ChessGame({ initialPgn }: Props) {
       <div className="board-wrapper">
         <Chessboard
           options={{
-            position: game.fen(),
+            position: fen,
             onSquareClick,
             onPieceDrop,
             boardOrientation,
@@ -344,7 +247,7 @@ export default function ChessGame({ initialPgn }: Props) {
           <div className="promo-overlay" onClick={() => setPendingPromotion(null)}>
             <div className="promo-picker" onClick={(e) => e.stopPropagation()}>
               {(["q", "r", "b", "n"] as const).map((p) => {
-                const key = `${game.turn() === "w" ? "w" : "b"}${p.toUpperCase()}`;
+                const key = `${position.turn === "w" ? "w" : "b"}${p.toUpperCase()}`;
                 const PieceSvg = defaultPieces[key];
                 return (
                   <button
@@ -433,7 +336,7 @@ export default function ChessGame({ initialPgn }: Props) {
 
       <div className="fen-row">
         <div className="fen-label">
-          <span className="fen-prefix">FEN</span> {game.fen()}
+          <span className="fen-prefix">FEN</span> {fen}
         </div>
         <button
           className="fen-copy"
